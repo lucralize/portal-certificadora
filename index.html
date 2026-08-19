@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal Certificadora — Lucralize</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --primary: #2563eb; --primary-dark: #1d4ed8; --success: #16a34a;
+  --warning: #d97706; --danger: #dc2626; --info: #0891b2;
+  --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb;
+  --gray-300: #d1d5db; --gray-400: #9ca3af; --gray-500: #6b7280;
+  --gray-600: #4b5563; --gray-700: #374151; --gray-800: #1f2937; --gray-900: #111827;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4ff; color: var(--gray-800); min-height: 100vh; }
+.topbar { background: #1a1f2e; color: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+.topbar h1 { font-size: 15px; font-weight: 700; }
+.topbar p { font-size: 11px; color: #718096; margin-top: 2px; }
+.topbar-right { font-size: 12px; color: #718096; }
+.container { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+.card { background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 16px; overflow: hidden; }
+.card-header { padding: 14px 18px; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; justify-content: space-between; }
+.card-header h3 { font-size: 14px; font-weight: 700; }
+.card-body { padding: 18px; }
+.cert-card { border: 1px solid var(--gray-200); border-radius: 8px; margin-bottom: 12px; }
+.cert-card.vencido { border-color: #fca5a5; }
+.cert-card.urgente { border-color: #fde68a; }
+.cert-header { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; background: var(--gray-50); border-radius: 8px; }
+.cert-header:hover { background: var(--gray-100); }
+.cert-body { padding: 16px; border-top: 1px solid var(--gray-200); display: none; }
+.cert-body.open { display: block; }
+.badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.badge-danger { background: #fee2e2; color: #991b1b; }
+.badge-warning { background: #fef9c3; color: #92400e; }
+.badge-success { background: #dcfce7; color: #15803d; }
+.badge-info { background: #e0f2fe; color: #0369a1; }
+.badge-gray { background: var(--gray-100); color: var(--gray-600); }
+.badge-blue { background: #eff6ff; color: #1d4ed8; }
+.badge-purple { background: #f3e8ff; color: #7e22ce; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-success { background: var(--success); color: #fff; }
+.btn-success:hover { background: #15803d; }
+.btn-outline { background: #fff; color: var(--gray-700); border: 1px solid var(--gray-300); }
+.btn-outline:hover { background: var(--gray-50); }
+.btn-whatsapp { background: #25d366; color: #fff; }
+.btn-whatsapp:hover { background: #1ebe5d; }
+.btn-email { background: var(--info); color: #fff; }
+.btn-email:hover { background: #0e7490; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 4px; }
+.form-control { width: 100%; padding: 8px 10px; border: 1px solid var(--gray-300); border-radius: 6px; font-size: 13px; color: var(--gray-800); background: #fff; }
+.form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+textarea.form-control { resize: vertical; min-height: 70px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.required::after { content: ' *'; color: var(--danger); }
+.alert { padding: 12px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 12px; }
+.alert-warning { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+.alert-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
+.alert-info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+.alert-danger { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+.divider { height: 1px; background: var(--gray-200); margin: 14px 0; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.flex-end { display: flex; justify-content: flex-end; gap: 8px; }
+.gap-8 { gap: 8px; display: flex; }
+.text-sm { font-size: 12px; }
+.text-gray { color: var(--gray-500); }
+.font-bold { font-weight: 700; }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mb-16 { margin-bottom: 16px; }
+#toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast { padding: 12px 16px; border-radius: 8px; color: #fff; font-size: 13px; font-weight: 500; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 320px; animation: slideIn 0.2s ease; }
+.toast-success { background: var(--success); }
+.toast-error { background: var(--danger); }
+.toast-info { background: var(--info); }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.locked-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 16px; text-align: center; }
+.locked-screen .icon { font-size: 56px; }
+.locked-screen h2 { font-size: 22px; font-weight: 700; }
+.locked-screen p { color: var(--gray-500); max-width: 360px; line-height: 1.5; }
+.pin-row { display: flex; gap: 8px; }
+.pin-input { letter-spacing: 6px; font-size: 18px; text-align: center; font-family: monospace; width: 180px; }
+.empty-state { text-align: center; padding: 40px 20px; color: var(--gray-400); }
+.empty-state .icon { font-size: 40px; margin-bottom: 8px; }
+.tab-bar { display: flex; gap: 0; border-bottom: 2px solid var(--gray-200); margin-bottom: 20px; }
+.tab { padding: 10px 18px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--gray-500); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+.tab:hover { color: var(--gray-800); }
+.tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
+.modal-overlay.open { display: flex; }
+.modal { background: #fff; border-radius: 12px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+.modal-header { padding: 16px 20px; border-bottom: 1px solid var(--gray-200); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: #fff; }
+.modal-header h3 { font-size: 16px; font-weight: 700; }
+.modal-close { background: none; border: none; cursor: pointer; font-size: 20px; color: var(--gray-400); }
+.modal-body { padding: 20px; }
+.modal-footer { padding: 14px 20px; border-top: 1px solid var(--gray-200); display: flex; gap: 8px; justify-content: flex-end; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <h1>🏢 Portal Certificadora — Lucralize</h1>
+    <p>Acesso restrito. Dados para renovação de certificados digitais.</p>
+  </div>
+  <div class="topbar-right" id="topbar-date"></div>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- TELA BLOQUEADA -->
+<div class="container" id="screen-lock">
+  <div class="locked-screen">
+    <div class="icon">🔐</div>
+    <h2>Acesso Restrito</h2>
+    <p>Este portal é exclusivo para parceiros certificadores da Lucralize. Digite a senha de acesso fornecida pela equipe.</p>
+    <div class="pin-row">
+      <input type="password" class="form-control pin-input" id="pin-input" placeholder="Senha" onkeydown="if(event.key==='Enter')verificarSenha()">
+      <button class="btn btn-primary" onclick="verificarSenha()">Entrar</button>
+    </div>
+    <p id="pin-erro" style="color:var(--danger);font-size:12px;display:none;">Senha incorreta. Tente novamente.</p>
+    <div style="margin-top:20px;width:100%;max-width:400px;">
+      <div id="fb-status-portal" style="font-size:11px;margin-top:6px;color:var(--gray-400);text-align:center;">☁️ Conectando à Lucralize...</div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTEÚDO PRINCIPAL -->
+<div class="container" id="screen-main" style="display:none;">
+  <div class="flex-between mb-16">
+    <div>
+      <div class="tab-bar">
+        <div class="tab active" onclick="setTab('pendentes')">🔴 Pendentes de Renovação</div>
+        <div class="tab" onclick="setTab('novo')">➕ Novo Cliente</div>
+        <div class="tab" onclick="setTab('concluidos')">✅ Concluídos</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn btn-outline btn-sm" onclick="importarDados()">📥 Importar dados</button>
+      <button class="btn btn-success btn-sm" onclick="exportarResposta()">📤 Exportar resposta</button>
+      <button class="btn btn-outline btn-sm" onclick="sair()">🔒 Sair</button>
+    </div>
+  </div>
+
+  <!-- TAB: PENDENTES -->
+  <div class="tab-content active" id="tab-pendentes">
+    <div id="lista-pendentes"></div>
+  </div>
+
+  <!-- TAB: NOVO CLIENTE -->
+  <div class="tab-content" id="tab-novo">
+    <div class="card">
+      <div class="card-header"><h3>➕ Cadastrar Novo Cliente para Renovação</h3></div>
+      <div class="card-body">
+        <div class="alert alert-info">Preencha os dados do cliente que precisa renovar o certificado. Esses dados serão incluídos no arquivo de resposta para a equipe Lucralize.</div>
+        <div class="form-row">
+          <div class="form-group"><label class="required">Tipo de Documento</label>
+            <select class="form-control" id="n-doc-tipo" onchange="onChangeDocTipo('n')"><option value="CNPJ">CNPJ</option><option value="CPF">CPF</option></select></div>
+          <div class="form-group"><label class="required" id="n-doc-label">CNPJ</label>
+            <input type="text" class="form-control" id="n-doc-valor" placeholder="00.000.000/0000-00" maxlength="18" oninput="maskDocumento(this, 'n')"></div>
+          <div class="form-group"><label class="required">Divisão Lucralize</label>
+            <select class="form-control" id="n-divisao"><option>Contabilidade</option><option>Tech</option></select></div>
+        </div>
+        <div class="form-group"><label class="required">Razão Social</label>
+          <input type="text" class="form-control" id="n-razao"></div>
+        <div class="form-row">
+          <div class="form-group"><label>Nome do Responsável</label>
+            <input type="text" class="form-control" id="n-responsavel"></div>
+          <div class="form-group"><label>E-mail do Responsável</label>
+            <input type="email" class="form-control" id="n-email" placeholder="responsavel@empresa.com"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>WhatsApp</label>
+            <div style="display:flex;gap:6px;"><input type="text" class="form-control" id="n-whatsapp" placeholder="5511999999999" style="flex:1;"><button type="button" class="btn btn-outline btn-sm" onclick="abrirWhatsAppNovo()" title="Abrir WhatsApp com mensagem">📱</button></div></div>
+          <div class="form-group"><label>Tipo de Certificado</label>
+            <select class="form-control" id="n-tipo"><option>A1 - PF</option><option>A1 - PJ</option><option>A3 - PJ</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Tipo de Emissão</label>
+            <select class="form-control" id="n-tipo-emissao" onchange="toggleVencimento('n')"><option value="">— Selecionar —</option><option value="Primeiro certificado">Primeiro certificado</option><option value="Renovação de certificado">Renovação de certificado</option></select></div>
+          <div class="form-group"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group" id="n-venc-group"><label>Vencimento do Certificado</label>
+            <input type="date" class="form-control" id="n-venc-atual"></div>
+          <div class="form-group"><label>Status da Renovação</label>
+            <select class="form-control" id="n-status">
+              <option value="">— Selecionar status —</option>
+              <option>Contato realizado</option>
+              <option>Renovação agendada</option>
+              <option>Renovação concluída</option>
+            </select></div>
+        </div>
+        <div class="form-group"><label>Código de Emissão</label>
+          <input type="text" class="form-control" id="n-codigo" placeholder="Código gerado na emissão do certificado (se já disponível)"></div>
+        <div class="form-group"><label>Upload do Certificado (PDF)</label>
+          <input type="file" class="form-control" id="n-pdf" accept=".pdf,.pfx,.p12" onchange="handleUpload('n-pdf', this)"></div>
+        <div class="form-group"><label>Observações</label>
+          <textarea class="form-control" id="n-obs" placeholder="Informações adicionais..."></textarea></div>
+        <div class="flex-end">
+          <button class="btn btn-outline" onclick="limparFormNovo()">Limpar</button>
+          <button class="btn btn-primary" onclick="salvarNovo()">💾 Adicionar à lista</button>
+        </div>
+      </div>
+    </div>
+    <div id="novos-adicionados"></div>
+  </div>
+
+  <!-- TAB: CONCLUÍDOS -->
+  <div class="tab-content" id="tab-concluidos">
+    <div style="display:flex;gap:10px;align-items:end;margin-bottom:16px;flex-wrap:wrap;">
+      <div class="form-group" style="margin-bottom:0;">
+        <label>Renovado de</label>
+        <input type="date" class="form-control" id="filtro-data-de" onchange="renderConcluidos()">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label>Renovado até</label>
+        <input type="date" class="form-control" id="filtro-data-ate" onchange="renderConcluidos()">
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="limparFiltroData()" style="height:38px;">✖️ Limpar filtro</button>
+    </div>
+    <div id="lista-concluidos"></div>
+  </div>
+</div>
+
+<!-- MODAL: WHATSAPP -->
+<div class="modal-overlay" id="modal-whatsapp">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>💬 Mensagem WhatsApp</h3>
+      <button class="modal-close" onclick="closeModal('modal-whatsapp')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--gray-500);margin-bottom:8px;">Copie a mensagem abaixo e cole no WhatsApp:</p>
+      <textarea id="wa-msg-preview" class="form-control" rows="10" readonly style="font-size:13px;line-height:1.6;background:#f9fafb;"></textarea>
+    </div>
+    <div class="modal-footer" style="gap:8px;">
+      <button class="btn btn-outline" onclick="closeModal('modal-whatsapp')">Fechar</button>
+      <button class="btn btn-outline" onclick="copiarMsgWa()">📋 Copiar mensagem</button>
+      <button class="btn btn-whatsapp" onclick="abrirWaExterno()">💬 Abrir WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR CLIENTE -->
+<div class="modal-overlay" id="modal-edit-client">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>✏️ Editar Dados do Cliente</h3>
+      <button class="modal-close" onclick="closeModal('modal-edit-client')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-client-id">
+      <div class="form-row">
+        <div class="form-group"><label class="required">CNPJ</label>
+          <input type="text" class="form-control" id="edit-cnpj" maxlength="18" oninput="maskCNPJ(this)"></div>
+        <div class="form-group"><label>CPF</label>
+          <input type="text" class="form-control" id="edit-cpf" maxlength="14" oninput="maskCPF(this)"></div>
+        <div class="form-group"><label class="required">Divisão Lucralize</label>
+          <select class="form-control" id="edit-divisao"><option>Contabilidade</option><option>Tech</option></select></div>
+      </div>
+      <div class="form-group"><label class="required">Razão Social</label>
+        <input type="text" class="form-control" id="edit-razao"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Nome do Responsável</label>
+          <input type="text" class="form-control" id="edit-responsavel"></div>
+        <div class="form-group"><label>E-mail do Responsável</label>
+          <input type="email" class="form-control" id="edit-email" placeholder="responsavel@empresa.com"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>WhatsApp</label>
+          <div style="display:flex;gap:6px;"><input type="text" class="form-control" id="edit-whatsapp" placeholder="5511999999999" style="flex:1;"><button type="button" class="btn btn-outline btn-sm" onclick="abrirWhatsAppEdit()" title="Abrir WhatsApp com mensagem">📱</button></div></div>
+        <div class="form-group"><label>Tipo de Certificado</label>
+          <select class="form-control" id="edit-tipo"><option>A1 - PF</option><option>A1 - PJ</option><option>A3 - PJ</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Tipo de Emissão</label>
+          <select class="form-control" id="edit-tipo-emissao" onchange="toggleVencimento('edit')"><option value="">— Selecionar —</option><option value="Primeiro certificado">Primeiro certificado</option><option value="Renovação de certificado">Renovação de certificado</option></select></div>
+        <div class="form-group" id="edit-venc-group"><label>Vencimento do Certificado</label>
+          <input type="date" class="form-control" id="edit-vencimento"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-edit-client')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarEdicaoCliente()">💾 Salvar alterações</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL: IMPORTAR DADOS -->
+<div class="modal-overlay" id="modal-import">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>📥 Importar Dados da Lucralize</h3>
+      <button class="modal-close" onclick="closeModal('modal-import')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info">Selecione o arquivo <strong>.json</strong> enviado pela equipe Lucralize para carregar os certificados pendentes.</div>
+      <div class="form-group">
+        <label>Arquivo de dados (.json)</label>
+        <input type="file" class="form-control" id="import-file" accept=".json">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-import')">Cancelar</button>
+      <button class="btn btn-primary" onclick="processarImport()">✅ Importar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== STATE ====================
+// Usa as MESMAS chaves do app principal (central-triagem.html)
+// para sincronização automática via localStorage no mesmo navegador/computador
+const DB_KEY_CERTS = 'triagem_certificados';
+const DB_KEY_SENHA = 'portal_senha';
+
+let autenticado = false;
+let _salvandoNovo = false; // trava para impedir envio duplicado de cadastro
+
+function getSenha() { return 'Certworld2026'; }
+
+// ==================== UTILS ====================
+function uuid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+function today() { return new Date().toISOString().split('T')[0]; }
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+function daysDiff(iso) {
+  if (!iso) return null;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const t = new Date(iso + 'T00:00:00');
+  return Math.round((t - now) / 86400000);
+}
+function maskCNPJ(el) {
+  let v = el.value.replace(/\D/g,'').substring(0,14);
+  v = v.replace(/^(\d{2})(\d)/,'$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1/$2').replace(/(\d{4})(\d)/,'$1-$2');
+  el.value = v;
+}
+function maskCPF(el) {
+  let v = el.value.replace(/\D/g,'').substring(0,11);
+  v = v.replace(/^(\d{3})(\d)/,'$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1-$2');
+  el.value = v;
+}
+// Alterna entre CNPJ/CPF no dropdown de tipo de documento
+function onChangeDocTipo(prefixo) {
+  const tipo = document.getElementById(prefixo + '-doc-tipo').value;
+  const input = document.getElementById(prefixo + '-doc-valor');
+  const label = document.getElementById(prefixo + '-doc-label');
+  if (!input) return;
+  input.value = '';
+  if (tipo === 'CPF') {
+    input.placeholder = '000.000.000-00';
+    input.maxLength = 14;
+    if (label) label.textContent = 'CPF';
+  } else {
+    input.placeholder = '00.000.000/0000-00';
+    input.maxLength = 18;
+    if (label) label.textContent = 'CNPJ';
+  }
+}
+// Aplica a máscara certa (CNPJ ou CPF) conforme o tipo selecionado no dropdown
+function maskDocumento(el, prefixo) {
+  const tipo = document.getElementById(prefixo + '-doc-tipo')?.value;
+  if (tipo === 'CPF') maskCPF(el);
+  else maskCNPJ(el);
+}
+function toast(msg, type='success') {
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.textContent = msg;
+  document.getElementById('toast-container').appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ==================== DB (agora sincronizado via SharePoint/Power Automate) ====================
+function getCerts() {
+  try { return JSON.parse(localStorage.getItem(DB_KEY_CERTS) || '[]'); } catch { return []; }
+}
+function setCerts(data) {
+  localStorage.setItem(DB_KEY_CERTS, JSON.stringify(data));
+}
+
+// ==================== SHAREPOINT / POWER AUTOMATE SYNC ====================
+// Fluxo 1: recebe novos dados/PDF e grava na Lista + Biblioteca do SharePoint
+const PA_URL_ESCREVER = 'https://default5173aa8366e149f39128f2251b4329.4d.environment.api.powerplatform.com/powerautomate/automations/direct/cu/31/workflows/096fa7c7688e4149b0fd7efa9319e132/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=b6tHmioRfZSDr2jAWWXIXuKNi_UbPF1OwzU2NBLNIt0';
+// Fluxo 2: lê os itens da Lista do SharePoint
+const PA_URL_LER = 'https://default5173aa8366e149f39128f2251b4329.4d.environment.api.powerplatform.com/powerautomate/automations/direct/cu/21/workflows/299ea13905cf4bd098559bdfd56e2afe/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=qTs4nFAaBHXzPmZekUNSp5T08bYaVoIPXIi3x831-vU';
+// Fluxo 3: atualiza um item já existente na Lista (edição de cliente)
+const PA_URL_ATUALIZAR = 'https://default5173aa8366e149f39128f2251b4329.4d.environment.api.powerplatform.com/powerautomate/automations/direct/cu/12/workflows/1e386bacc067447981484910ab64da5f/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=l10iArvsYvQb7Y2jgOwNIta4L-nyWzDJfVDPWzMlBnc';
+
+let _syncTimer = null;
+
+// Converte um item vindo da Lista do SharePoint (colunas PascalCase) para o formato usado pelo app (camelCase)
+function spItemParaCert(item, idLocalExistente) {
+  const spId = item.Id != null ? item.Id : item.ID; // SharePoint pode devolver "Id" ou "ID"
+  return {
+    id: idLocalExistente || (spId != null ? 'sp-' + spId : uuid()),
+    cnpj: item.CNPJ || '',
+    cpf: item.CPF || '',
+    razaoSocial: item.RazaoSocial || '',
+    divisao: item.Divisao || '',
+    tipo: item.TipoCliente || '',
+    tipoEmissao: item.TipoEmissao || '',
+    vencimento: item.Vencimento ? item.Vencimento.split('T')[0] : '',
+    nomeResponsavel: item.NomeResponsavel || '',
+    emailResponsavel: item.EmailResponsavel || '',
+    whatsappResponsavel: item.WhatsappResponsavel || '',
+    obs: item.Observacoes || '',
+    certData: {
+      statusRenovacao: item.StatusRenovacao || '',
+      dataRenovacao: item.DataRenovacao ? item.DataRenovacao.split('T')[0] : null,
+      codigoEmissao: item.CodigoEmissao || '',
+      pdfNome: item.PdfNomeArquivo || null
+    },
+    _spId: spId
+  };
+}
+
+function normCnpj(v) { return (v || '').replace(/\D/g, ''); }
+
+// Remove o prefixo "data:...;base64," deixando só o base64 puro que o Power Automate espera
+function base64Puro(v) {
+  if (!v) return '';
+  const i = v.indexOf('base64,');
+  return i >= 0 ? v.slice(i + 7) : v;
+}
+
+async function spPull() {
+  if (_salvandoNovo) return; // não sincroniza no meio de um cadastro em andamento
+  try {
+    const resp = await fetch(PA_URL_LER, { method: 'POST' });
+    if (!resp.ok) { atualizarStatusSyncPortal(false); return; }
+    const itens = await resp.json();
+    if (!Array.isArray(itens)) { atualizarStatusSyncPortal(false); return; }
+    // Casa cada item do SharePoint com o cliente local pelo CNPJ, preservando o id local
+    const locais = getCerts();
+    const merged = itens.map(item => {
+      const cnpjItem = normCnpj(item.CNPJ);
+      const localExistente = locais.find(c => normCnpj(c.cnpj) === cnpjItem && cnpjItem);
+      return spItemParaCert(item, localExistente ? localExistente.id : null);
+    });
+    const atual = JSON.stringify(locais);
+    const novo = JSON.stringify(merged);
+    if (novo !== atual) {
+      localStorage.setItem(DB_KEY_CERTS, novo);
+      if (autenticado) renderTudo();
+    }
+    atualizarStatusSyncPortal(true);
+  } catch (e) {
+    console.warn('Erro ao ler dados do SharePoint:', e);
+    atualizarStatusSyncPortal(false);
+  }
+}
+
+// Envia um novo cliente (com ou sem PDF em base64) para o Power Automate, que grava no SharePoint
+async function spPush(cert) {
+  try {
+    const payload = {
+      cnpj: cert.cnpj || '',
+      cpf: cert.cpf || '',
+      razaoSocial: cert.razaoSocial || '',
+      divisao: cert.divisao || '',
+      tipoCliente: cert.tipo || '',
+      tipoEmissao: cert.tipoEmissao || '',
+      vencimento: cert.vencimento || null,
+      nomeResponsavel: cert.nomeResponsavel || '',
+      emailResponsavel: cert.emailResponsavel || '',
+      whatsappResponsavel: cert.whatsappResponsavel || '',
+      statusRenovacao: cert.certData?.statusRenovacao || '',
+      dataRenovacao: cert.certData?.dataRenovacao || null,
+      codigoEmissao: cert.certData?.codigoEmissao || '',
+      observacoes: cert.obs || cert.certData?.obsCertificadora || '',
+      pdfNome: cert.certData?.pdfNome || '',
+      pdfBase64: base64Puro(cert.certData?.pdfBase64)
+    };
+    const resp = await fetch(PA_URL_ESCREVER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!resp.ok) throw new Error('Falha ao salvar no SharePoint');
+    try {
+      const data = await resp.json();
+      if (data && data.id) return data.id; // devolve o Id oficial do SharePoint
+    } catch (e) { /* resposta sem corpo JSON válido — segue como sucesso simples */ }
+    return true;
+  } catch (e) {
+    console.warn('Erro ao enviar dados para o SharePoint:', e);
+    toast('Erro ao sincronizar com o SharePoint. Os dados foram salvos localmente.', 'error');
+    return false;
+  }
+}
+
+// Atualiza um cliente já existente no SharePoint (usa o spId do item)
+async function spUpdate(cert) {
+  let spId = cert._spId;
+  if (!spId) {
+    // Ainda não temos o spId localmente — tenta achar consultando o SharePoint pelo CNPJ,
+    // em vez de assumir que o cliente é novo (evita criar duplicata por corrida de sincronização)
+    try {
+      const resp0 = await fetch(PA_URL_LER, { method: 'POST' });
+      if (resp0.ok) {
+        const itens = await resp0.json();
+        if (Array.isArray(itens)) {
+          const encontrado = itens.find(it => normCnpj(it.CNPJ) === normCnpj(cert.cnpj) && normCnpj(cert.cnpj));
+          if (encontrado) spId = encontrado.Id != null ? encontrado.Id : encontrado.ID;
+        }
+      }
+    } catch (e) { console.warn('Falha ao verificar spId antes de atualizar:', e); }
+  }
+  if (!spId) {
+    // Realmente não existe ainda no SharePoint — cria
+    return spPush(cert);
+  }
+  try {
+    const payload = {
+      spId: spId,
+      cnpj: cert.cnpj || '',
+      cpf: cert.cpf || '',
+      razaoSocial: cert.razaoSocial || '',
+      divisao: cert.divisao || '',
+      tipoCliente: cert.tipo || '',
+      tipoEmissao: cert.tipoEmissao || '',
+      vencimento: cert.vencimento || null,
+      nomeResponsavel: cert.nomeResponsavel || '',
+      emailResponsavel: cert.emailResponsavel || '',
+      whatsappResponsavel: cert.whatsappResponsavel || '',
+      statusRenovacao: cert.certData?.statusRenovacao || '',
+      dataRenovacao: cert.certData?.dataRenovacao || null,
+      codigoEmissao: cert.certData?.codigoEmissao || '',
+      observacoes: cert.obs || cert.certData?.obsCertificadora || '',
+      pdfNome: cert.certData?.pdfNome || '',
+      pdfBase64: base64Puro(cert.certData?.pdfBase64)
+    };
+    const resp = await fetch(PA_URL_ATUALIZAR, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!resp.ok) throw new Error('Falha ao atualizar no SharePoint');
+    return true;
+  } catch (e) {
+    console.warn('Erro ao atualizar dados no SharePoint:', e);
+    toast('Erro ao atualizar no SharePoint. Os dados foram salvos localmente.', 'error');
+    return false;
+  }
+}
+
+function atualizarStatusSyncPortal(ok) {
+  const el = document.getElementById('fb-status-portal');
+  if (!el) return;
+  const t = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  el.innerHTML = ok ? '☁️ Sincronizado às ' + t : '⚠️ Sem conexão com o SharePoint';
+  el.style.color = ok ? '#15803d' : '#d97706';
+}
+
+function initPortalSync() {
+  if (_syncTimer) clearInterval(_syncTimer);
+  spPull();
+  _syncTimer = setInterval(spPull, 15000);
+}
+// ==================== FIM SHAREPOINT SYNC ====================
+
+// ==================== AUTH ====================
+function verificarSenha() {
+  const val = document.getElementById('pin-input').value;
+  if (val !== getSenha()) {
+    document.getElementById('pin-erro').style.display = 'block';
+    document.getElementById('pin-input').value = '';
+    return;
+  }
+  autenticado = true;
+  document.getElementById('screen-lock').style.display = 'none';
+  document.getElementById('screen-main').style.display = 'block';
+  renderTudo();
+}
+
+function sair() {
+  autenticado = false;
+  document.getElementById('screen-main').style.display = 'none';
+  document.getElementById('screen-lock').style.display = 'block';
+  document.getElementById('pin-input').value = '';
+  document.getElementById('pin-erro').style.display = 'none';
+}
+
+// ==================== IMPORT / EXPORT (backup) ====================
+function importarDados() { openModal('modal-import'); }
+
+function processarImport() {
+  const file = document.getElementById('import-file').files[0];
+  if (!file) { toast('Selecione um arquivo .json', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const dados = JSON.parse(e.target.result);
+      const lista = dados.certs || dados;
+      if (!Array.isArray(lista)) { toast('Arquivo inválido.', 'error'); return; }
+      const atual = getCerts();
+      lista.forEach(c => {
+        const idx = atual.findIndex(x => x.id === c.id);
+        if (idx >= 0) { atual[idx] = { ...atual[idx], ...c, certData: { ...(atual[idx].certData||{}), ...(c.certData||{}) } }; }
+        else { atual.push(c); }
+      });
+      setCerts(atual);
+      closeModal('modal-import');
+      renderTudo();
+      toast(`Dados importados com sucesso!`);
+    } catch { toast('Erro ao ler o arquivo.', 'error'); }
+  };
+  reader.readAsText(file);
+}
+
+function exportarResposta() {
+  const certs = getCerts().filter(c => { const d = daysDiff(c.vencimento); return d !== null && d <= 15; });
+  const payload = {
+    tipo: 'resposta-portal-certificadora',
+    geradoEm: today(),
+    certs: certs.map(c => ({ id: c.id, cnpj: c.cnpj, razaoSocial: c.razaoSocial, divisao: c.divisao, certData: c.certData || {} })),
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `resposta-certificadora-${today()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Arquivo exportado!');
+}
+
+// ==================== TABS ====================
+function setTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  const tabs = ['pendentes', 'novo', 'concluidos'];
+  tabs.forEach((t, i) => { if (t === tab) { document.querySelectorAll('.tab')[i].classList.add('active'); } });
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'pendentes') renderPendentes();
+  if (tab === 'concluidos') renderConcluidos();
+  if (tab === 'novo') renderNovosAdicionados();
+}
+
+// ==================== RENDER ====================
+function renderTudo() { renderPendentes(); renderNovosAdicionados(); renderConcluidos(); }
+
+function renderPendentes() {
+  const lista = document.getElementById('lista-pendentes');
+  const certs = getCerts();
+  const pendentes = certs.filter(c => {
+    const cd = c.certData || {};
+    return cd.statusRenovacao !== 'Renovação concluída';
+  }).sort((a, b) => {
+    const da = daysDiff(a.vencimento) ?? 9999;
+    const db = daysDiff(b.vencimento) ?? 9999;
+    return da - db;
+  });
+
+  if (!pendentes.length) {
+    lista.innerHTML = '<div class="empty-state"><div class="icon">✅</div><p>Nenhum certificado pendente de renovação.</p></div>';
+    return;
+  }
+
+  lista.innerHTML = pendentes.map(c => buildCertCard(c)).join('');
+}
+
+function limparFiltroData() {
+  const de = document.getElementById('filtro-data-de');
+  const ate = document.getElementById('filtro-data-ate');
+  if (de) de.value = '';
+  if (ate) ate.value = '';
+  renderConcluidos();
+}
+
+function renderConcluidos() {
+  const lista = document.getElementById('lista-concluidos');
+  const certs = getCerts();
+  const filtroDe = document.getElementById('filtro-data-de')?.value || '';
+  const filtroAte = document.getElementById('filtro-data-ate')?.value || '';
+  const concl = certs.filter(c => {
+    const cd = c.certData || {};
+    if (cd.statusRenovacao !== 'Renovação concluída') return false;
+    const dr = cd.dataRenovacao || '';
+    if (filtroDe && (!dr || dr < filtroDe)) return false;
+    if (filtroAte && (!dr || dr > filtroAte)) return false;
+    return true;
+  }).sort((a, b) => {
+    const da = daysDiff(a.vencimento) ?? 9999;
+    const db = daysDiff(b.vencimento) ?? 9999;
+    return da - db;
+  });
+
+  if (!concl.length) {
+    lista.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>Nenhum certificado concluído ainda.</p></div>';
+    return;
+  }
+
+  lista.innerHTML = concl.map(c => buildCertCard(c, true)).join('');
+}
+
+function buildCertCard(c, concluido = false) {
+  const d = daysDiff(c.vencimento);
+  const isVencido = d !== null && d < 0;
+  const isUrgente = d !== null && d >= 0 && d <= 15;
+  const isAtencao = d !== null && d > 15 && d <= 30;
+
+  const cls = isVencido ? 'vencido' : (isUrgente || isAtencao ? 'urgente' : '');
+  const cd = c.certData || {};
+
+  let vencBadge;
+  if (!c.vencimento) {
+    vencBadge = c.tipoEmissao === 'Primeiro certificado'
+      ? '<span class="badge badge-info">🆕 Primeiro certificado</span>'
+      : '<span class="badge badge-gray">Sem data de vencimento</span>';
+  } else if (isVencido) {
+    vencBadge = `<span class="badge badge-danger">🔴 Vencido há ${Math.abs(d)}d (${fmtDate(c.vencimento)})</span>`;
+  } else if (isUrgente) {
+    vencBadge = `<span class="badge badge-danger">🔴 Vence em ${d}d (${fmtDate(c.vencimento)})</span>`;
+  } else if (isAtencao) {
+    vencBadge = `<span class="badge badge-warning">🟡 Vence em ${d}d (${fmtDate(c.vencimento)})</span>`;
+  } else {
+    vencBadge = `<span class="badge badge-success">✅ Vence em ${d}d (${fmtDate(c.vencimento)})</span>`;
+  }
+
+  const emailBtn = c.emailResponsavel
+    ? `<button class="btn btn-sm btn-email" onclick="abrirEmail('${c.id}')">📧 E-mail</button>`
+    : '';
+  const waBtn = c.whatsappResponsavel
+    ? `<button class="btn btn-sm btn-whatsapp" onclick="abrirWhatsApp('${c.id}')">💬 WhatsApp</button>`
+    : '';
+
+  const statusOpts = ['', 'Contato realizado', 'Renovação agendada', 'Renovação concluída'];
+  const statusSelect = `<select class="form-control" id="status-${c.id}" onchange="toggleDataRenovacao('${c.id}', this.value)">
+    ${statusOpts.map(o => `<option value="${o}" ${cd.statusRenovacao===o?'selected':''}>${o||'— Selecionar status —'}</option>`).join('')}
+  </select>`;
+
+  const statusBadge = cd.statusRenovacao
+    ? (cd.statusRenovacao === 'Renovação concluída'
+        ? `<span class="badge badge-success">✅ ${cd.statusRenovacao}${cd.dataRenovacao ? ' em ' + fmtDate(cd.dataRenovacao) : ''}</span>`
+        : cd.statusRenovacao === 'Renovação agendada'
+        ? `<span class="badge badge-info">📅 ${cd.statusRenovacao}</span>`
+        : `<span class="badge badge-warning">📞 ${cd.statusRenovacao}</span>`)
+    : '';
+
+  return `<div class="cert-card ${cls}" id="card-${c.id}">
+    <div class="cert-header" onclick="toggleCard('body-${c.id}')">
+      <div>
+        <div style="font-weight:700;font-size:14px;">${c.razaoSocial}</div>
+        <div style="font-size:11px;color:var(--gray-500);">${c.cnpj}${c.cpf ? ' · CPF ' + c.cpf : ''} · ${c.divisao} · Tipo ${c.tipo || '—'}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+        ${vencBadge}
+        ${statusBadge}
+        ${cd.pdfNome ? '<span class="badge badge-info">📄 PDF</span>' : ''}
+        <span style="color:var(--gray-400);">▼</span>
+      </div>
+    </div>
+    <div class="cert-body" id="body-${c.id}">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+        <button class="btn btn-outline btn-sm" onclick="abrirEdicaoCliente('${c.id}');event.stopPropagation()">✏️ Editar dados cadastrais</button>
+      </div>
+      ${c.nomeResponsavel || c.emailResponsavel || c.whatsappResponsavel ? `
+      <div style="margin-bottom:14px;">
+        <p class="text-sm font-bold" style="margin-bottom:8px;">📞 Contato com o cliente</p>
+        ${c.nomeResponsavel ? `<p class="text-sm text-gray" style="margin-bottom:6px;">Responsável: <strong>${c.nomeResponsavel}</strong></p>` : ''}
+        ${c.emailResponsavel ? `<p class="text-sm text-gray" style="margin-bottom:6px;">E-mail: <strong>${c.emailResponsavel}</strong></p>` : ''}
+        ${c.whatsappResponsavel ? `<p class="text-sm text-gray" style="margin-bottom:6px;">WhatsApp: <strong>${c.whatsappResponsavel}</strong></p>` : ''}
+        <div style="display:flex;gap:8px;margin-top:8px;">${emailBtn}${waBtn}</div>
+      </div>
+      <div class="divider"></div>` : ''}
+      <div style="margin-top:14px;">
+        <p class="text-sm font-bold" style="margin-bottom:12px;">📋 Acompanhamento da Renovação</p>
+        <div class="form-group">
+          <label>Status da Renovação</label>
+          ${statusSelect}
+        </div>
+        <div class="form-group" id="dataRenov-group-${c.id}" style="${cd.statusRenovacao === 'Renovação concluída' ? '' : 'display:none;'}">
+          <label>Data da Renovação</label>
+          <input type="date" class="form-control" id="dataRenov-${c.id}" value="${cd.dataRenovacao || ''}">
+        </div>
+        <div class="form-group">
+          <label>Código de Emissão do Certificado</label>
+          <input type="text" class="form-control" id="cod-${c.id}" value="${cd.codigoEmissao || ''}" placeholder="Ex: 2024-XXXX-XXXXX">
+        </div>
+        <div class="form-group">
+          <label>Upload do Certificado (PDF / .pfx / .p12)</label>
+          <input type="file" class="form-control" id="pdf-${c.id}" accept=".pdf,.pfx,.p12" onchange="handleUpload('pdf-${c.id}', this)">
+          ${cd.pdfNome ? `<p class="text-sm text-gray" style="margin-top:4px;">📎 Atual: <strong>${cd.pdfNome}</strong>
+            <button class="btn btn-outline btn-sm" style="margin-left:6px;" onclick="downloadPdf('${c.id}')">⬇️ Abrir no SharePoint</button></p>` : ''}
+        </div>
+        <div class="form-group">
+          <label>Observações da Certificadora</label>
+          <textarea class="form-control" id="obs-${c.id}" placeholder="Informações sobre a renovação...">${cd.obsCertificadora || ''}</textarea>
+        </div>
+        <div class="flex-end">
+          <button class="btn btn-primary" onclick="salvarCertData('${c.id}')">💾 Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleCard(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('open');
+}
+
+// Mostra/oculta o campo de data quando o status muda para "Renovação concluída"
+function toggleDataRenovacao(certId, status) {
+  const group = document.getElementById(`dataRenov-group-${certId}`);
+  if (!group) return;
+  if (status === 'Renovação concluída') {
+    group.style.display = '';
+    const input = document.getElementById(`dataRenov-${certId}`);
+    if (input && !input.value) input.value = today(); // preenche com a data de hoje por padrão
+  } else {
+    group.style.display = 'none';
+  }
+}
+
+// ==================== CERT DATA ====================
+function handleUpload(inputId, input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 8 * 1024 * 1024) { toast('Arquivo muito grande. Máximo 8MB.', 'error'); input.value=''; return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    input.dataset.base64 = e.target.result;
+    input.dataset.nome = file.name;
+    toast(`Arquivo "${file.name}" carregado. Clique em Salvar para confirmar.`, 'info');
+  };
+  reader.readAsDataURL(file);
+}
+
+function salvarCertData(certId) {
+  const todos = getCerts();
+  const idx = todos.findIndex(c => c.id === certId);
+  if (idx < 0) return;
+  const cd = todos[idx].certData || {};
+  const codigoEl = document.getElementById(`cod-${certId}`);
+  const obsEl = document.getElementById(`obs-${certId}`);
+  const pdfEl = document.getElementById(`pdf-${certId}`);
+
+  const statusEl = document.getElementById(`status-${certId}`);
+  if (statusEl?.value) cd.statusRenovacao = statusEl.value;
+  if (codigoEl?.value.trim()) cd.codigoEmissao = codigoEl.value.trim();
+  if (obsEl?.value.trim()) cd.obsCertificadora = obsEl.value.trim();
+  const dataRenovEl = document.getElementById(`dataRenov-${certId}`);
+  if (cd.statusRenovacao === 'Renovação concluída') {
+    cd.dataRenovacao = dataRenovEl?.value || today();
+  } else {
+    cd.dataRenovacao = null; // limpa a data se o status deixou de ser "concluída"
+  }
+  cd.dataPreenchimento = today();
+
+  if (pdfEl?.dataset.base64) {
+    cd.pdfBase64 = pdfEl.dataset.base64;
+    cd.pdfNome = pdfEl.dataset.nome;
+  }
+
+  todos[idx].certData = cd;
+  setCerts(todos);
+  spUpdate(todos[idx]); // atualiza o registro correto no SharePoint (sem duplicar)
+  toast('Dados salvos e enviados ao SharePoint!');
+  renderTudo();
+}
+
+// Abre a biblioteca de certificados no SharePoint (acesso interno da Lucralize)
+const URL_BIBLIOTECA_CERTIFICADOS = 'https://lucralize.sharepoint.com/:f:/g/IgD5xwAMfMp3T5lZaTqEQxDzAbBJsQpjxKF6fHmqclavBuY?e=Mg9A2Q';
+function downloadPdf(certId) {
+  window.open(URL_BIBLIOTECA_CERTIFICADOS, '_blank');
+}
+
+// ==================== EDIÇÃO DE CLIENTE ====================
+function abrirEdicaoCliente(certId) {
+  const c = getCerts().find(x => x.id === certId);
+  if (!c) return;
+  document.getElementById('edit-client-id').value = certId;
+  document.getElementById('edit-cnpj').value = c.cnpj || '';
+  document.getElementById('edit-cpf').value = c.cpf || '';
+  document.getElementById('edit-divisao').value = c.divisao || 'Contabilidade';
+  document.getElementById('edit-razao').value = c.razaoSocial || '';
+  document.getElementById('edit-responsavel').value = c.nomeResponsavel || '';
+  document.getElementById('edit-email').value = c.emailResponsavel || '';
+  document.getElementById('edit-whatsapp').value = c.whatsappResponsavel || '';
+  document.getElementById('edit-tipo').value = c.tipo || 'A1 - PF';
+  document.getElementById('edit-tipo-emissao').value = c.tipoEmissao || '';
+  document.getElementById('edit-vencimento').value = c.vencimento || '';
+  toggleVencimento('edit'); // ajusta visibilidade do vencimento conforme o tipo de emissão
+  openModal('modal-edit-client');
+}
+
+function salvarEdicaoCliente() {
+  const certId = document.getElementById('edit-client-id').value;
+  const todos = getCerts();
+  const idx = todos.findIndex(c => c.id === certId);
+  if (idx < 0) return;
+  todos[idx].cnpj = document.getElementById('edit-cnpj').value.trim();
+  todos[idx].cpf = document.getElementById('edit-cpf').value.trim();
+  todos[idx].divisao = document.getElementById('edit-divisao').value;
+  todos[idx].razaoSocial = document.getElementById('edit-razao').value.trim();
+  todos[idx].nomeResponsavel = document.getElementById('edit-responsavel').value.trim();
+  todos[idx].emailResponsavel = document.getElementById('edit-email').value.trim();
+  todos[idx].whatsappResponsavel = document.getElementById('edit-whatsapp').value.replace(/\D/g,'');
+  todos[idx].tipo = document.getElementById('edit-tipo').value;
+  todos[idx].tipoEmissao = document.getElementById('edit-tipo-emissao').value;
+  todos[idx].vencimento = document.getElementById('edit-vencimento').value;
+  setCerts(todos);
+  spUpdate(todos[idx]); // atualiza o registro correto no SharePoint (sem duplicar)
+  closeModal('modal-edit-client');
+  renderTudo();
+  toast('Dados do cliente atualizados e enviados ao SharePoint!');
+}
+
+// ==================== CONTATO ====================
+function buildMsgEmail(c) {
+  const nome = c.nomeResponsavel || 'responsável';
+  const d = daysDiff(c.vencimento);
+  const isVencido = d !== null && d < 0;
+  const vf = fmtDate(c.vencimento);
+  if (isVencido) return {
+    assunto: `CERTIFICADO VENCIDO — ${c.razaoSocial}`,
+    corpo: `Prezado(a) ${nome},\n\nO certificado digital da empresa ${c.razaoSocial} — CNPJ ${c.cnpj} está VENCIDO desde ${vf}.\n\nEntre em contato conosco imediatamente para iniciar a renovação.\n\nAtenciosamente,\nEquipe Lucralize`
+  };
+  return {
+    assunto: `URGENTE — Renovação de Certificado Digital — ${c.razaoSocial}`,
+    corpo: `Prezado(a) ${nome},\n\nO certificado digital da empresa ${c.razaoSocial} — CNPJ ${c.cnpj} vence em ${vf} (${d} dia(s)).\n\nPrecisamos iniciar o processo de renovação o quanto antes para não impactar suas obrigações fiscais.\n\nAtenciosamente,\nEquipe Lucralize`
+  };
+}
+
+function abrirEmail(certId) {
+  const c = getCerts().find(x => x.id === certId);
+  if (!c?.emailResponsavel) return;
+  const msg = buildMsgEmail(c);
+  window.open(`mailto:${c.emailResponsavel}?subject=${encodeURIComponent(msg.assunto)}&body=${encodeURIComponent(msg.corpo)}`, '_blank');
+}
+
+function buildWaMsgPortal(c, tipoEmissao) {
+  const nome = c.nomeResponsavel || 'cliente';
+  const razao = c.razaoSocial || nome;
+  const tipoDoc = c.tipoDocumento || 'CNPJ';
+  const doc = c.cnpj || '';
+  const vf = fmtDate(c.vencimento);
+  const d = daysDiff(c.vencimento);
+  if (tipoEmissao === 'Primeiro certificado') {
+    return `Olá, ${nome}!\n\nAqui é a CERTWORLD CERTIFICADORA DIGITAL LTDA, parceira da Lucralize.\n\nEstamos entrando em contato para dar início à emissão do certificado digital da ${razao} (${tipoDoc}: ${doc}).\n\nO certificado digital é indispensável para a realização de diversas obrigações fiscais, contábeis e trabalhistas da empresa. Para garantir que tudo ocorra dentro do prazo, vamos agendar a emissão?`;
+  } else {
+    const diasStr = d !== null ? `daqui a ${d} dia${d === 1 ? '' : 's'}` : 'em breve';
+    return `Olá, ${nome}!\n\nAqui é a CERTWORLD CERTIFICADORA DIGITAL LTDA, parceira da Lucralize.\n\nInformamos que o certificado digital da ${razao} (${doc}), vencerá em ${vf} (${diasStr}).\n\nRecomendamos que a renovação seja realizada antes do vencimento para evitar interrupções no uso do certificado e possíveis impactos nas obrigações da empresa.\n\nVamos agendar a renovação?`;
+  }
+}
+let _waMsgAtual = '';
+let _waNumeroAtual = '';
+function abrirModalWa(numero, msg) {
+  _waMsgAtual = msg; _waNumeroAtual = numero;
+  document.getElementById('wa-msg-preview').value = msg;
+  openModal('modal-whatsapp');
+}
+function copiarMsgWa() {
+  navigator.clipboard.writeText(_waMsgAtual)
+    .then(() => toast('Mensagem copiada!', 'success'))
+    .catch(() => { const el = document.getElementById('wa-msg-preview'); el.select(); document.execCommand('copy'); toast('Mensagem copiada!', 'success'); });
+}
+function abrirWaExterno() {
+  window.open(`https://web.whatsapp.com/send?phone=${_waNumeroAtual}&text=${encodeURIComponent(_waMsgAtual)}`, '_blank');
+}
+function abrirWhatsApp(certId) {
+  const c = getCerts().find(x => x.id === certId);
+  if (!c?.whatsappResponsavel) return;
+  const tipoEmissao = c.tipoEmissao || 'Renovação de certificado';
+  abrirModalWa(c.whatsappResponsavel.replace(/\D/g,''), buildWaMsgPortal(c, tipoEmissao));
+}
+function abrirWhatsAppEdit() {
+  const numero = document.getElementById('edit-whatsapp').value.replace(/\D/g,'');
+  if (!numero) { toast('Digite o número do WhatsApp primeiro.', 'error'); return; }
+  const tipoEmissao = document.getElementById('edit-tipo-emissao').value;
+  if (!tipoEmissao) { toast('Selecione o Tipo de Emissão antes de abrir o WhatsApp.', 'error'); return; }
+  const c = { nomeResponsavel: document.getElementById('edit-responsavel').value.trim(), razaoSocial: document.getElementById('edit-razao').value.trim(), cnpj: document.getElementById('edit-cnpj').value.trim(), vencimento: document.getElementById('edit-vencimento').value };
+  abrirModalWa(numero, buildWaMsgPortal(c, tipoEmissao));
+}
+function abrirWhatsAppNovo() {
+  const numero = document.getElementById('n-whatsapp').value.replace(/\D/g,'');
+  if (!numero) { toast('Digite o número do WhatsApp primeiro.', 'error'); return; }
+  const tipoEmissao = document.getElementById('n-tipo-emissao').value;
+  if (!tipoEmissao) { toast('Selecione o Tipo de Emissão antes de abrir o WhatsApp.', 'error'); return; }
+  const docTipo = document.getElementById('n-doc-tipo').value;
+  const c = { nomeResponsavel: document.getElementById('n-responsavel').value.trim(), razaoSocial: document.getElementById('n-razao').value.trim(), cnpj: document.getElementById('n-doc-valor').value.trim(), tipoDocumento: docTipo, vencimento: document.getElementById('n-venc-atual').value };
+  abrirModalWa(numero, buildWaMsgPortal(c, tipoEmissao));
+}
+
+// ==================== NOVO CLIENTE ====================
+// Oculta o campo de vencimento quando o tipo de emissão for "Primeiro certificado"
+function toggleVencimento(prefixo) {
+  const tipo = document.getElementById(prefixo + '-tipo-emissao')?.value;
+  const group = document.getElementById(prefixo + '-venc-group');
+  const input = document.getElementById(prefixo === 'n' ? 'n-venc-atual' : 'edit-vencimento');
+  if (!group) return;
+  if (tipo === 'Primeiro certificado') {
+    group.style.display = 'none';
+    if (input) input.value = ''; // limpa qualquer data preenchida — primeiro certificado não tem vencimento
+  } else {
+    group.style.display = '';
+  }
+}
+
+async function salvarNovo() {
+  if (_salvandoNovo) return; // já há um salvamento em andamento — ignora clique/disparo repetido
+  const docTipo = document.getElementById('n-doc-tipo').value;
+  const docValor = document.getElementById('n-doc-valor').value.trim();
+  const razao = document.getElementById('n-razao').value.trim();
+  if (!docValor || !razao) { toast(`${docTipo} e Razão Social são obrigatórios.`, 'error'); return; }
+  const docNormalizado = docValor.replace(/\D/g,'');
+  const todos = getCerts();
+  const existente = todos.find(c => (c.cnpj || '').replace(/\D/g,'') === docNormalizado || (c.cpf || '').replace(/\D/g,'') === docNormalizado);
+  if (existente) { toast('Cliente já existe na lista.', 'error'); return; }
+  _salvandoNovo = true;
+  const btnSalvar = document.querySelector('button[onclick="salvarNovo()"]');
+  if (btnSalvar) btnSalvar.disabled = true;
+  const fileInput = document.getElementById('n-pdf');
+  const fileData = fileInput.dataset.base64 || fileInput._base64 || null;
+  const fileName = fileInput.dataset.nome || fileInput.files[0]?.name || null;
+  const novo = {
+    id: uuid(),
+    cnpj: docTipo === 'CNPJ' ? docValor : '',
+    cpf: docTipo === 'CPF' ? docValor : '',
+    razaoSocial: razao,
+    divisao: document.getElementById('n-divisao').value,
+    tipo: document.getElementById('n-tipo').value,
+    tipoEmissao: document.getElementById('n-tipo-emissao').value,
+    vencimento: document.getElementById('n-venc-atual').value,
+    nomeResponsavel: document.getElementById('n-responsavel').value.trim(),
+    emailResponsavel: document.getElementById('n-email').value.trim(),
+    whatsappResponsavel: document.getElementById('n-whatsapp').value.replace(/\D/g,''),
+    obs: document.getElementById('n-obs').value.trim(),
+    certData: {
+      statusRenovacao: document.getElementById('n-status').value,
+      codigoEmissao: document.getElementById('n-codigo').value.trim(),
+      pdfBase64: fileData,
+      pdfNome: fileName
+    },
+    adicionadoPeloPortal: true,
+    criadoEm: new Date().toISOString().slice(0,10)
+  };
+  toast('Salvando no SharePoint...', 'info');
+  try {
+    const resultado = await spPush(novo);
+    if (typeof resultado === 'number' || typeof resultado === 'string') {
+      novo._spId = resultado; // Id oficial do SharePoint, disponível imediatamente
+    }
+    todos.push(novo);
+    setCerts(todos);
+    limparFormNovo();
+    renderTudo();
+    if (resultado) toast('Cliente adicionado e salvo no SharePoint!', 'success');
+  } finally {
+    _salvandoNovo = false;
+    if (btnSalvar) btnSalvar.disabled = false;
+  }
+}
+function limparFormNovo() {
+  ['n-doc-valor','n-razao','n-responsavel','n-email','n-whatsapp','n-obs','n-codigo','n-venc-atual'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  ['n-divisao','n-tipo','n-tipo-emissao','n-status'].forEach(id => { const el = document.getElementById(id); if (el) el.selectedIndex = 0; });
+  const docTipoEl = document.getElementById('n-doc-tipo'); if (docTipoEl) docTipoEl.selectedIndex = 0;
+  onChangeDocTipo('n'); // restaura placeholder/máscara padrão (CNPJ)
+  const fp = document.getElementById('n-pdf'); if (fp) { fp.value = ''; fp._base64 = null; delete fp.dataset.base64; delete fp.dataset.nome; }
+  toggleVencimento('n'); // restaura visibilidade do campo de vencimento
+}
+function renderNovosAdicionados() {
+  const lista = document.getElementById('novos-adicionados');
+  if (!lista) return;
+  const novos = getCerts().filter(c => c.adicionadoPeloPortal);
+  if (!novos.length) { lista.innerHTML = ''; return; }
+  lista.innerHTML = '<div class="card" style="margin-top:16px;"><div class="card-header"><h3>📋 Clientes adicionados nesta sessão</h3></div><div class="card-body">' +
+    novos.map(c => `<div style="padding:8px 0;border-bottom:1px solid var(--gray-200);">
+      <strong>${c.razaoSocial}</strong> — ${c.cnpj} · ${c.divisao}
+      ${c.tipoEmissao ? '<span class="badge badge-info">' + c.tipoEmissao + '</span>' : ''}
+    </div>`).join('') +
+    '</div></div>';
+}
+// ==================== INIT ====================
+(function() {
+  var n = new Date();
+  var dias = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+  var meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  var el = document.getElementById('topbar-date');
+  if (el) el.textContent = dias[n.getDay()] + ', ' + String(n.getDate()).padStart(2,'0') + ' de ' + meses[n.getMonth()] + ' de ' + n.getFullYear();
+})();
+document.querySelectorAll('.modal-overlay').forEach(function(o) { o.addEventListener('click', function(e) { if (e.target === o) o.classList.remove('open'); }); });
+
+initPortalSync();
+
+</script>
+</body>
+</html>
