@@ -263,6 +263,14 @@ textarea.form-control { resize: vertical; min-height: 70px; }
 .ind-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--lz-text-muted); margin-top: 3px; }
 .ind-meta .venc-alerta { color: var(--lz-danger-ink); font-weight: 700; }
 .ind-side { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+.conc-card { background: var(--lz-success-bg); }
+.conc-data, .conc-emit { color: var(--lz-success-ink); font-weight: 600; }
+.conc-obs { font-style: italic; }
+.conc-summary { display: flex; background: var(--lz-bg-alt); border: 1px solid var(--lz-border); border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+.conc-sum-item { flex: 1; padding: 14px 20px; display: flex; flex-direction: column; gap: 2px; }
+.conc-sum-n { font-family: var(--font-display); font-size: 24px; font-weight: 700; color: var(--lz-title); }
+.conc-sum-l { font-size: 13px; font-weight: 600; color: var(--lz-text-muted); }
+.conc-sum-sep { width: 1px; background: var(--lz-border); flex-shrink: 0; }
 .ind-date { font-size: 13px; color: var(--lz-text-muted); }
 .tpj, .tpf { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; }
 .tpj { background: var(--lz-info-bg); color: var(--lz-info-ink); }
@@ -351,10 +359,12 @@ textarea.form-control { resize: vertical; min-height: 70px; }
       <button class="ni act" data-view="dashboard" onclick="nav('dashboard')"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Visão Geral</button>
       <div class="sb-div"></div>
       <div class="sb-sec co"><span class="dot dot-t"></span>Lucralize Contabilidade</div>
-      <button class="ni" data-view="Contabilidade" onclick="nav('Contabilidade')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z"/><path d="m9 12 2 2 4-4"/></svg>Certificados</button>
+      <button class="ni" data-view="Contabilidade" onclick="nav('Contabilidade')"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Indicações Ativas</button>
+      <button class="ni" data-view="ContabilidadeEmitidos" onclick="nav('ContabilidadeEmitidos')"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>Certificados Emitidos</button>
       <div class="sb-div"></div>
       <div class="sb-sec co"><span class="dot dot-p"></span>Lucralize Tech</div>
-      <button class="ni" data-view="Tech" onclick="nav('Tech')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z"/><path d="m9 12 2 2 4-4"/></svg>Certificados</button>
+      <button class="ni" data-view="Tech" onclick="nav('Tech')"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Indicações Ativas</button>
+      <button class="ni" data-view="TechEmitidos" onclick="nav('TechEmitidos')"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>Certificados Emitidos</button>
       <div class="sb-div"></div>
       <div class="sb-sec">Relatórios</div>
       <button class="ni" onclick="abrirExportacao()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Exportar Planilha</button>
@@ -517,8 +527,8 @@ textarea.form-control { resize: vertical; min-height: 70px; }
 //    através de 3 fluxos do Power Automate (URLs mais abaixo).
 //  - Os dados ficam só na memória da aba: ao sair ou fechar a aba, somem
 //    do computador (nada de dados de clientes salvo no navegador).
-//  - Telas: Visão Geral (números do mês e comissão), Certificados de cada
-//    divisão, Histórico de Exclusões e Exportar Planilha.
+//  - Telas: Visão Geral (números do mês e comissão), Indicações Ativas e
+//    Certificados Emitidos de cada divisão, Histórico de Exclusões e Exportar Planilha.
 // =====================================================================
 
 // ==================== CONFIGURAÇÃO ====================
@@ -530,6 +540,8 @@ const EMAIL_COPIA = 'processos@lucralize.com.br';              // recebe cópia 
 const STATUS_PADRAO = 'Pendente de contato'; // no SharePoint fica como campo vazio
 const STATUS = [STATUS_PADRAO, 'Contato realizado', 'Renovação agendada', 'Renovação concluída',
   'Certificado emitido', 'Cliente não quer renovar', 'Não feito na certificadora'];
+// Aparecem na tela "Certificados Emitidos"; os demais status ficam em "Indicações Ativas"
+const STATUS_EMITIDOS = ['Renovação concluída', 'Certificado emitido'];
 const STATUS_ENCERRADOS = ['Renovação concluída', 'Certificado emitido', 'Cliente não quer renovar', 'Não feito na certificadora'];
 const STATUS_COM_DATA_CONCLUSAO = ['Renovação concluída', 'Certificado emitido', 'Não feito na certificadora'];
 const EMITIDO_ROTULO = { nao: 'Não emitido', cont: 'Emitido pela Contabilidade', cli: 'Emitido pelo Cliente' };
@@ -541,7 +553,7 @@ let _certs = [];               // lista de clientes, vinda do SharePoint (só em
 let _chaveAcesso = null;       // chave derivada da senha; enviada aos fluxos em cada chamada
 let _gravacoes = 0;            // quantas gravações no SharePoint estão em andamento
 let _renderAdiado = false;     // houve atualização enquanto o usuário digitava
-let _telaAtual = 'dashboard';  // 'dashboard' | 'Contabilidade' | 'Tech' | 'log'
+let _telaAtual = 'dashboard';  // 'dashboard' | 'Contabilidade' | 'ContabilidadeEmitidos' | 'Tech' | 'TechEmitidos' | 'log'
 let _mesOffset = 0;            // navegação de competência na Visão Geral (0 = mês atual)
 let _filtros = { q: '', de: '', ate: '', status: '' };
 let _editandoId = null;        // id do cliente aberto no formulário (null = novo)
@@ -598,6 +610,10 @@ function daysDiff(iso) {
 function porVencimento(a, b) {
   return (daysDiff(a.vencimento) ?? 9999) - (daysDiff(b.vencimento) ?? 9999);
 }
+// Certificados emitidos: o concluído mais recentemente aparece primeiro
+function porConclusaoRecente(a, b) {
+  return (b.certData.dataRenovacao || '').localeCompare(a.certData.dataRenovacao || '');
+}
 // Escapa texto antes de colocar em HTML (impede que um nome/observação vire código na página)
 function esc(v) {
   return String(v ?? '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
@@ -612,6 +628,10 @@ function abrirNovaAba(url) { window.open(url, '_blank', 'noopener'); }
 // ---- regras de negócio dos certificados ----
 function statusDe(c) { return (c.certData && c.certData.statusRenovacao) || STATUS_PADRAO; }
 function isEncerrado(c) { return STATUS_ENCERRADOS.includes(statusDe(c)); }
+function isEmitido(c) { return STATUS_EMITIDOS.includes(statusDe(c)); }
+// As telas de certificados são 'Contabilidade', 'Tech' e as versões '...Emitidos' de cada uma
+function divisaoDaTela(tela) { return tela.startsWith('Tech') ? 'Tech' : 'Contabilidade'; }
+function telaDeEmitidos(tela) { return tela.endsWith('Emitidos'); }
 function isPJ(c) { return (c.tipo || '').includes('PJ'); }
 function comissaoDe(c) { return isPJ(c) ? COMISSAO_PJ : COMISSAO_PF; }
 // A comissão só conta quando a renovação foi concluída ou o certificado foi emitido
@@ -917,8 +937,10 @@ function sair() {
 // ==================== NAVEGAÇÃO ====================
 const TELAS = {
   dashboard: ['PORTAL CERTIFICADORA', 'Visão Geral'],
-  Contabilidade: ['LUCRALIZE CONTABILIDADE', 'Certificados'],
-  Tech: ['LUCRALIZE TECH', 'Certificados'],
+  Contabilidade: ['LUCRALIZE CONTABILIDADE', 'Indicações Ativas'],
+  ContabilidadeEmitidos: ['LUCRALIZE CONTABILIDADE', 'Certificados Emitidos'],
+  Tech: ['LUCRALIZE TECH', 'Indicações Ativas'],
+  TechEmitidos: ['LUCRALIZE TECH', 'Certificados Emitidos'],
   log: ['RELATÓRIOS', 'Histórico de Exclusões'],
 };
 function nav(tela) {
@@ -935,12 +957,12 @@ function render() {
   const pg = document.getElementById('pg');
   if (_telaAtual === 'dashboard') pg.innerHTML = buildDash();
   else if (_telaAtual === 'log') pg.innerHTML = buildLog();
-  else pg.innerHTML = buildCert(_telaAtual);
+  else pg.innerHTML = buildCert(divisaoDaTela(_telaAtual), telaDeEmitidos(_telaAtual));
 }
 // Redesenha só a parte das listas (a barra de filtros mantém o foco enquanto o usuário digita)
 function renderListas() {
   const el = document.getElementById('cert-listas');
-  if (el) el.innerHTML = buildListas(_telaAtual);
+  if (el) el.innerHTML = telaDeEmitidos(_telaAtual) ? buildEmitidos(divisaoDaTela(_telaAtual)) : buildListas(divisaoDaTela(_telaAtual));
 }
 // Não redesenha a tela enquanto alguém está digitando num campo dela; deixa para a próxima atualização
 function renderOuAdiar() {
@@ -1029,53 +1051,102 @@ function buildDash() {
 }
 
 // ==================== CERTIFICADOS (por divisão) ====================
-function filtrar(div) {
+function filtrar(div, emitidos) {
   const q = _filtros.q.toLowerCase().trim();
   const qDigitos = soDigitos(q);
   return ativos().filter(c => {
-    if (divisaoDe(c) !== div) return false;
+    if (divisaoDe(c) !== div || isEmitido(c) !== emitidos) return false;
     if (q && !(c.razaoSocial || '').toLowerCase().includes(q) && !(qDigitos && docDoCliente(c).includes(qDigitos))) return false;
     if (_filtros.de && (c.dataIndicacao || '') < _filtros.de) return false;
     if (_filtros.ate && (c.dataIndicacao || '') > _filtros.ate) return false;
-    if (_filtros.status && statusDe(c) !== _filtros.status) return false;
+    if (!emitidos && _filtros.status && statusDe(c) !== _filtros.status) return false;
     return true;
-  }).sort(porVencimento);
+  }).sort(emitidos ? porConclusaoRecente : porVencimento);
 }
 function mudarFiltro(campo, valor) { _filtros[campo] = valor; renderListas(); }
 function limparFiltros() { _filtros = { q: '', de: '', ate: '', status: '' }; render(); }
 
-function buildCert(div) {
+function buildCert(div, emitidos) {
+  // Em "Certificados Emitidos" não há filtro de status: todos os itens já estão concluídos
+  const filtroStatus = emitidos ? '' : `
+    <div class="fi"><label for="fl-st">Status</label>
+      <select class="form-control" id="fl-st" onchange="mudarFiltro('status', this.value)">
+        <option value="">Todos</option>
+        ${STATUS.filter(s => !STATUS_EMITIDOS.includes(s)).map(s => `<option value="${esc(s)}" ${_filtros.status === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}
+      </select></div>`;
   return `
   <div class="fbar">
     <div class="fi"><label for="fl-q">Buscar</label>
       <input class="form-control" id="fl-q" type="search" value="${esc(_filtros.q)}" placeholder="Nome, CNPJ ou CPF…" oninput="mudarFiltro('q', this.value)"></div>
     <div class="fi"><label for="fl-de">Indicação a partir de</label><input class="form-control" id="fl-de" type="date" value="${esc(_filtros.de)}" onchange="mudarFiltro('de', this.value)"></div>
     <div class="fi"><label for="fl-ate">Indicação até</label><input class="form-control" id="fl-ate" type="date" value="${esc(_filtros.ate)}" onchange="mudarFiltro('ate', this.value)"></div>
-    <div class="fi"><label for="fl-st">Status</label>
-      <select class="form-control" id="fl-st" onchange="mudarFiltro('status', this.value)">
-        <option value="">Todos</option>
-        ${STATUS.map(s => `<option value="${esc(s)}" ${_filtros.status === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}
-      </select></div>
+    ${filtroStatus}
     <button class="btn btn-outline btn-sm" style="height:38px;" onclick="limparFiltros()">${ic('x')} Limpar</button>
   </div>
-  <div id="cert-listas">${buildListas(div)}</div>`;
+  <div id="cert-listas">${emitidos ? buildEmitidos(div) : buildListas(div)}</div>`;
 }
 
+// Tela "Indicações Ativas": só o que ainda está em andamento (ou foi recusado) e a equipe opera aqui
 function buildListas(div) {
-  const linhas = filtrar(div);
-  const pend = linhas.filter(c => !isEncerrado(c));
-  const conc = linhas.filter(isEncerrado);
+  const linhas = filtrar(div, false);
   return `
   <div class="sbl">
     <div class="sbl-hdr">
-      <h3>Indicações Pendentes <span class="bx">${pend.length}</span></h3>
+      <h3>Indicações Ativas <span class="bx">${linhas.length}</span></h3>
       <button class="btn btn-primary btn-sm" onclick="abrirForm(null)">${ic('plus')} Nova Indicação</button>
     </div>
-    <div class="ind-list">${pend.length ? pend.map(cardRow).join('') : '<div class="empty-msg">Nenhuma indicação pendente</div>'}</div>
+    <div class="ind-list">${linhas.length ? linhas.map(cardRow).join('') : '<div class="empty-msg">Nenhuma indicação ativa</div>'}</div>
+  </div>`;
+}
+
+// Tela "Certificados Emitidos": histórico só de leitura, com o total e a comissão acumulada
+function buildEmitidos(div) {
+  const linhas = filtrar(div, true);
+  const comissao = linhas.filter(geraComissao).reduce((s, c) => s + comissaoDe(c), 0);
+  return `
+  <div class="conc-summary">
+    <div class="conc-sum-item"><span class="conc-sum-n">${linhas.length}</span><span class="conc-sum-l">Certificados emitidos</span></div>
+    <div class="conc-sum-sep"></div>
+    <div class="conc-sum-item"><span class="conc-sum-n comissao">${fmtMoeda(comissao)}</span><span class="conc-sum-l">Comissão total</span></div>
   </div>
   <div class="sbl">
-    <div class="sbl-hdr"><h3>Processos Concluídos <span class="bx gr">${conc.length}</span></h3></div>
-    <div class="ind-list">${conc.length ? conc.map(cardRow).join('') : '<div class="empty-msg">Nenhum processo concluído</div>'}</div>
+    <div class="ind-list">${linhas.length ? linhas.map(cardEmitido).join('') : '<div class="empty-msg">Nenhum certificado emitido ainda</div>'}</div>
+  </div>`;
+}
+
+// Cartão simplificado do histórico: sem controle de status; só anexo, editar e excluir
+function cardEmitido(c) {
+  const id = idSeguro(c.id);
+  const cd = c.certData;
+  const emitidoPor = (c.emitido || 'nao') === 'nao' ? 'Emissão não informada' : EMITIDO_ROTULO[c.emitido];
+  const anexo = cd.pdfNome
+    ? `<button class="anx-chip" style="border:0;cursor:pointer;" title="Abrir biblioteca no SharePoint" onclick="abrirBibliotecaCertificados()">${ic('clip')}<span>${esc(cd.pdfNome)}</span></button>`
+    : '<span class="text-sm text-gray">Sem anexo</span>';
+  return `<div class="ind-card conc-card" id="card-${id}">
+    <div class="ind-top">
+      <div>
+        <div class="ind-nome">${esc(c.razaoSocial)}</div>
+        <div class="ind-meta">
+          <span>${ic('hash')} ${esc(c.cnpj || c.cpf)}</span>
+          ${c.nomeResponsavel ? `<span>${ic('user')} ${esc(c.nomeResponsavel)}</span>` : ''}
+          ${cd.dataRenovacao ? `<span class="conc-data">Concluído em ${fmtDate(cd.dataRenovacao)}</span>` : ''}
+          ${c.dataAgendamento ? `<span>${ic('cal')} Agendado: ${fmtDate(c.dataAgendamento)}</span>` : ''}
+        </div>
+        <div class="ind-meta">
+          <span class="conc-emit">${esc(emitidoPor)}</span>
+          ${geraComissao(c) ? `<span class="comissao">${fmtMoeda(comissaoDe(c))}</span>` : '<span>Sem comissão</span>'}
+          ${cd.obsCertificadora ? `<span class="conc-obs">“${esc(cd.obsCertificadora)}”</span>` : ''}
+        </div>
+      </div>
+      <div class="ind-side">
+        <span class="${isPJ(c) ? 'tpj' : 'tpf'}">${esc(c.tipo || '—')}</span>
+        ${anexo}
+        <div class="ind-acts">
+          <button class="ab" title="Editar" aria-label="Editar" onclick="abrirForm('${id}')">${ic('pencil')}</button>
+          <button class="ab ab-dl" title="Excluir" aria-label="Excluir" onclick="iniciarExclusao('${id}')">${ic('trash')}</button>
+        </div>
+      </div>
+    </div>
   </div>`;
 }
 
@@ -1146,7 +1217,7 @@ async function alterarInline(id, campo, valor) {
   } else if (campo === 'emitido') {
     c.emitido = valor;
   }
-  if (campo === 'status') renderListas(); // o cartão pode mudar de lista (pendente ↔ concluído)
+  if (campo === 'status') renderListas(); // o cartão pode sair desta tela (ex.: concluída vai para Certificados Emitidos)
   await salvarCliente(c);
 }
 
@@ -1245,9 +1316,9 @@ function abrirForm(id) {
   if (id && !c) return;
   const cd = c ? c.certData : {};
   const cpf = c ? (!c.cnpj && !!c.cpf) : false;
-  document.getElementById('m-ttl').textContent = c ? 'Editar Indicação' : 'Nova Indicação — ' + (_telaAtual === 'Tech' ? 'Tech' : 'Contabilidade');
+  document.getElementById('m-ttl').textContent = c ? 'Editar Indicação' : 'Nova Indicação — ' + divisaoDaTela(_telaAtual);
   document.getElementById('f-nome').value = c ? c.razaoSocial : '';
-  document.getElementById('f-divisao').value = c ? divisaoDe(c) : (_telaAtual === 'Tech' ? 'Tech' : 'Contabilidade');
+  document.getElementById('f-divisao').value = c ? divisaoDe(c) : divisaoDaTela(_telaAtual);
   document.getElementById('f-tdoc').value = cpf ? 'cpf' : 'cnpj';
   onChangeTipoDoc();
   document.getElementById('f-doc').value = c ? (c.cnpj || c.cpf) : '';
