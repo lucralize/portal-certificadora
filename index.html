@@ -989,7 +989,8 @@ function pararSync() {
 //    (SharePoint), ativo e com perfil válido. Perfis: superadmin, admin e colaborador.
 //    Todos usam o portal inteiro; só superadmin e admin veem as abas Usuários e Log de atividades.
 //  - Certificadora: senha. Vê Indicações Ativas e Certificados Emitidos das duas divisões, muda status,
-//    agendamento, observação e anexa documentos. Não vê comissão, exclusão, exportação nem envio de e-mails.
+//    agendamento, observação, anexa documentos e abre a mensagem de WhatsApp ao cliente. Não vê comissão,
+//    exclusão, exportação nem os e-mails.
 // Atenção: a separação entre certificadora e equipe é feita na tela; quem protege os dados de verdade é a
 // chave de acesso conferida pelos fluxos do Power Automate (ver README).
 const SUPERADMIN_EMAIL = 'mateusaraujo@lucralize.com.br'; // fixo: entra mesmo se a planilha falhar e não pode ser alterado nem excluído
@@ -1926,13 +1927,13 @@ function cardRow(c) {
         ${['nao', 'cont', 'cli'].map(v => `<label><input type="radio" name="emit-${id}" value="${v}" ${(c.emitido || 'nao') === v ? 'checked' : ''} onchange="alterarInline('${id}', 'emitido', this.value)">${v === 'nao' ? 'Não' : v === 'cont' ? 'Contab.' : 'Cliente'}</label>`).join('')}
       </span>
       ${anexo}
-      ${ehCertificadora() ? '' : `<div class="ind-acts">
-        <button class="ab ab-mail" title="Enviar indicação para a certificadora" onclick="enviarCertificadora('${id}')">${ic('mail')} Enviar</button>
+      <div class="ind-acts">
+        ${ehCertificadora() ? '' : `<button class="ab ab-mail" title="Enviar indicação para a certificadora" onclick="enviarCertificadora('${id}')">${ic('mail')} Enviar</button>`}
         ${c.whatsappResponsavel ? `<button class="ab" title="Mensagem de WhatsApp para o cliente" aria-label="WhatsApp do cliente" onclick="abrirWhatsApp('${id}')">${ic('chat')}</button>` : ''}
-        ${c.emailResponsavel ? `<button class="ab" title="E-mail para o cliente" aria-label="E-mail do cliente" onclick="abrirEmail('${id}')">${ic('mail')} Cliente</button>` : ''}
+        ${ehCertificadora() ? '' : `${c.emailResponsavel ? `<button class="ab" title="E-mail para o cliente" aria-label="E-mail do cliente" onclick="abrirEmail('${id}')">${ic('mail')} Cliente</button>` : ''}
         <button class="ab" title="Editar" aria-label="Editar" onclick="abrirForm('${id}')">${ic('pencil')}</button>
-        <button class="ab ab-dl" title="Excluir" aria-label="Excluir" onclick="iniciarExclusao('${id}')">${ic('trash')}</button>
-      </div>`}
+        <button class="ab ab-dl" title="Excluir" aria-label="Excluir" onclick="iniciarExclusao('${id}')">${ic('trash')}</button>`}
+      </div>
     </div>
   </div>`;
 }
@@ -2347,7 +2348,7 @@ function abrirWaExterno() {
 }
 function abrirWhatsApp(certId) {
   const c = getCerts().find(x => x.id === certId);
-  if (!c?.whatsappResponsavel || ehCertificadora()) return;
+  if (!c?.whatsappResponsavel) return;
   lgRegistrar('ENVIOU', `WhatsApp ao cliente "${c.razaoSocial}"`);
   abrirModalWa(soDigitos(c.whatsappResponsavel), buildWaMsgPortal(c, c.tipoEmissao || 'Renovação de certificado'));
 }
