@@ -266,6 +266,9 @@ textarea.form-control { resize: vertical; min-height: 70px; }
 .conc-card { background: var(--lz-success-bg); }
 .conc-data, .conc-emit { color: var(--lz-success-ink); font-weight: 600; }
 .conc-obs { font-style: italic; }
+.conc-neg { color: var(--lz-danger-ink); font-weight: 700; }
+.conc-card.nao-realizado { background: var(--lz-danger-bg); }
+.bx.rd { background: var(--lz-danger-bg-2); color: var(--lz-danger-ink); }
 .conc-summary { display: flex; background: var(--lz-bg-alt); border: 1px solid var(--lz-border); border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
 .conc-sum-item { flex: 1; padding: 14px 20px; display: flex; flex-direction: column; gap: 2px; }
 .conc-sum-n { font-family: var(--font-display); font-size: 24px; font-weight: 700; color: var(--lz-title); }
@@ -540,8 +543,8 @@ const EMAIL_COPIA = 'processos@lucralize.com.br';              // recebe cópia 
 const STATUS_PADRAO = 'Pendente de contato'; // no SharePoint fica como campo vazio
 const STATUS = [STATUS_PADRAO, 'Contato realizado', 'Renovação agendada', 'Renovação concluída',
   'Certificado emitido', 'Cliente não quer renovar', 'Não feito na certificadora'];
-// Aparecem na tela "Certificados Emitidos"; os demais status ficam em "Indicações Ativas"
-const STATUS_EMITIDOS = ['Renovação concluída', 'Certificado emitido'];
+// Status que mandam o cliente para "Certificados Emitidos" > "Não realizados"
+const STATUS_NAO_REALIZADOS = ['Cliente não quer renovar', 'Não feito na certificadora'];
 const STATUS_ENCERRADOS = ['Renovação concluída', 'Certificado emitido', 'Cliente não quer renovar', 'Não feito na certificadora'];
 const STATUS_COM_DATA_CONCLUSAO = ['Renovação concluída', 'Certificado emitido', 'Não feito na certificadora'];
 const EMITIDO_ROTULO = { nao: 'Não emitido', cont: 'Emitido pela Contabilidade', cli: 'Emitido pelo Cliente' };
@@ -628,7 +631,17 @@ function abrirNovaAba(url) { window.open(url, '_blank', 'noopener'); }
 // ---- regras de negócio dos certificados ----
 function statusDe(c) { return (c.certData && c.certData.statusRenovacao) || STATUS_PADRAO; }
 function isEncerrado(c) { return STATUS_ENCERRADOS.includes(statusDe(c)); }
-function isEmitido(c) { return STATUS_EMITIDOS.includes(statusDe(c)); }
+// Onde cada cliente aparece:
+//  - 'nao_realizado': recusou ou não foi feito na certificadora (Certificados Emitidos > Não realizados)
+//  - 'emitido': status "Certificado emitido" E quem emitiu já informado (Certificados Emitidos > Emitidos)
+//  - 'ativo': todo o resto, inclusive "Renovação concluída" e "Certificado emitido" sem emitente (Indicações Ativas)
+function destinoDe(c) {
+  const st = statusDe(c);
+  if (STATUS_NAO_REALIZADOS.includes(st)) return 'nao_realizado';
+  if (st === 'Certificado emitido' && (c.emitido || 'nao') !== 'nao') return 'emitido';
+  return 'ativo';
+}
+const DESTINO_ROTULO = { ativo: 'Indicações Ativas', emitido: 'Certificados Emitidos', nao_realizado: 'Certificados Emitidos (Não realizados)' };
 // As telas de certificados são 'Contabilidade', 'Tech' e as versões '...Emitidos' de cada uma
 function divisaoDaTela(tela) { return tela.startsWith('Tech') ? 'Tech' : 'Contabilidade'; }
 function telaDeEmitidos(tela) { return tela.endsWith('Emitidos'); }
@@ -1051,17 +1064,17 @@ function buildDash() {
 }
 
 // ==================== CERTIFICADOS (por divisão) ====================
-function filtrar(div, emitidos) {
+function filtrar(div, historico) {
   const q = _filtros.q.toLowerCase().trim();
   const qDigitos = soDigitos(q);
   return ativos().filter(c => {
-    if (divisaoDe(c) !== div || isEmitido(c) !== emitidos) return false;
+    if (divisaoDe(c) !== div || (destinoDe(c) !== 'ativo') !== historico) return false;
     if (q && !(c.razaoSocial || '').toLowerCase().includes(q) && !(qDigitos && docDoCliente(c).includes(qDigitos))) return false;
     if (_filtros.de && (c.dataIndicacao || '') < _filtros.de) return false;
     if (_filtros.ate && (c.dataIndicacao || '') > _filtros.ate) return false;
-    if (!emitidos && _filtros.status && statusDe(c) !== _filtros.status) return false;
+    if (!historico && _filtros.status && statusDe(c) !== _filtros.status) return false;
     return true;
-  }).sort(emitidos ? porConclusaoRecente : porVencimento);
+  }).sort(historico ? porConclusaoRecente : porVencimento);
 }
 function mudarFiltro(campo, valor) { _filtros[campo] = valor; renderListas(); }
 function limparFiltros() { _filtros = { q: '', de: '', ate: '', status: '' }; render(); }
@@ -1072,7 +1085,7 @@ function buildCert(div, emitidos) {
     <div class="fi"><label for="fl-st">Status</label>
       <select class="form-control" id="fl-st" onchange="mudarFiltro('status', this.value)">
         <option value="">Todos</option>
-        ${STATUS.filter(s => !STATUS_EMITIDOS.includes(s)).map(s => `<option value="${esc(s)}" ${_filtros.status === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}
+        ${STATUS.filter(s => !STATUS_NAO_REALIZADOS.includes(s)).map(s => `<option value="${esc(s)}" ${_filtros.status === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}
       </select></div>`;
   return `
   <div class="fbar">
@@ -1099,42 +1112,55 @@ function buildListas(div) {
   </div>`;
 }
 
-// Tela "Certificados Emitidos": histórico só de leitura, com o total e a comissão acumulada
+// Tela "Certificados Emitidos": histórico só de leitura, em duas seções (Emitidos e Não realizados)
 function buildEmitidos(div) {
   const linhas = filtrar(div, true);
-  const comissao = linhas.filter(geraComissao).reduce((s, c) => s + comissaoDe(c), 0);
+  const emitidos = linhas.filter(c => destinoDe(c) === 'emitido');
+  const naoRealizados = linhas.filter(c => destinoDe(c) === 'nao_realizado');
+  const comissao = emitidos.filter(geraComissao).reduce((s, c) => s + comissaoDe(c), 0);
+  const secao = (titulo, classeBadge, lista) => lista.length ? `
+  <div class="sbl">
+    <div class="sbl-hdr"><h3>${titulo} <span class="bx ${classeBadge}">${lista.length}</span></h3></div>
+    <div class="ind-list">${lista.map(cardEmitido).join('')}</div>
+  </div>` : '';
   return `
   <div class="conc-summary">
-    <div class="conc-sum-item"><span class="conc-sum-n">${linhas.length}</span><span class="conc-sum-l">Certificados emitidos</span></div>
+    <div class="conc-sum-item"><span class="conc-sum-n">${emitidos.length}</span><span class="conc-sum-l">Certificados emitidos</span></div>
     <div class="conc-sum-sep"></div>
-    <div class="conc-sum-item"><span class="conc-sum-n comissao">${fmtMoeda(comissao)}</span><span class="conc-sum-l">Comissão total</span></div>
+    <div class="conc-sum-item"><span class="conc-sum-n comissao">${fmtMoeda(comissao)}</span><span class="conc-sum-l">Comissão acumulada</span></div>
+    <div class="conc-sum-sep"></div>
+    <div class="conc-sum-item"><span class="conc-sum-n conc-neg">${naoRealizados.length}</span><span class="conc-sum-l">Não realizados</span></div>
   </div>
-  <div class="sbl">
-    <div class="ind-list">${linhas.length ? linhas.map(cardEmitido).join('') : '<div class="empty-msg">Nenhum certificado emitido ainda</div>'}</div>
-  </div>`;
+  ${secao('Emitidos', 'gr', emitidos)}
+  ${secao('Não realizados', 'rd', naoRealizados)}
+  ${linhas.length ? '' : '<div class="sbl"><div class="empty-msg">Nenhum registro neste módulo ainda</div></div>'}`;
 }
 
-// Cartão simplificado do histórico: sem controle de status; só anexo, editar e excluir
+// Cartão simplificado do histórico: sem controle de status; só anexo, editar e excluir.
+// Não realizados aparecem em vermelho e sem comissão.
 function cardEmitido(c) {
   const id = idSeguro(c.id);
   const cd = c.certData;
-  const emitidoPor = (c.emitido || 'nao') === 'nao' ? 'Emissão não informada' : EMITIDO_ROTULO[c.emitido];
+  const naoRealizado = destinoDe(c) === 'nao_realizado';
   const anexo = cd.pdfNome
     ? `<button class="anx-chip" style="border:0;cursor:pointer;" title="Abrir biblioteca no SharePoint" onclick="abrirBibliotecaCertificados()">${ic('clip')}<span>${esc(cd.pdfNome)}</span></button>`
-    : '<span class="text-sm text-gray">Sem anexo</span>';
-  return `<div class="ind-card conc-card" id="card-${id}">
+    : '';
+  const situacao = naoRealizado
+    ? `<span class="conc-neg">${esc(statusDe(c))}</span>`
+    : `<span class="conc-data">Emitido${cd.dataRenovacao ? ' em ' + fmtDate(cd.dataRenovacao) : ''}</span>`;
+  return `<div class="ind-card conc-card ${naoRealizado ? 'nao-realizado' : ''}" id="card-${id}">
     <div class="ind-top">
       <div>
-        <div class="ind-nome">${esc(c.razaoSocial)}</div>
+        <div class="ind-nome ${naoRealizado ? 'conc-neg' : ''}">${esc(c.razaoSocial)}</div>
         <div class="ind-meta">
           <span>${ic('hash')} ${esc(c.cnpj || c.cpf)}</span>
           ${c.nomeResponsavel ? `<span>${ic('user')} ${esc(c.nomeResponsavel)}</span>` : ''}
-          ${cd.dataRenovacao ? `<span class="conc-data">Concluído em ${fmtDate(cd.dataRenovacao)}</span>` : ''}
-          ${c.dataAgendamento ? `<span>${ic('cal')} Agendado: ${fmtDate(c.dataAgendamento)}</span>` : ''}
+          ${c.vencimento ? `<span>Venc: ${fmtDate(c.vencimento)}</span>` : ''}
+          ${naoRealizado ? '' : `<span class="comissao">${fmtMoeda(comissaoDe(c))}</span>`}
         </div>
         <div class="ind-meta">
-          <span class="conc-emit">${esc(emitidoPor)}</span>
-          ${geraComissao(c) ? `<span class="comissao">${fmtMoeda(comissaoDe(c))}</span>` : '<span>Sem comissão</span>'}
+          ${situacao}
+          ${naoRealizado ? '' : `<span class="conc-emit">${esc(EMITIDO_ROTULO[c.emitido] || '')}</span>`}
           ${cd.obsCertificadora ? `<span class="conc-obs">“${esc(cd.obsCertificadora)}”</span>` : ''}
         </div>
       </div>
@@ -1206,6 +1232,7 @@ async function alterarInline(id, campo, valor) {
   const c = getCerts().find(x => x.id === id);
   if (!c) return;
   const cd = c.certData;
+  const destinoAntes = destinoDe(c);
   if (campo === 'status') {
     cd.statusRenovacao = valorStatusParaSP(valor);
     if (['Renovação concluída', 'Certificado emitido'].includes(valor) && !cd.dataRenovacao) cd.dataRenovacao = today();
@@ -1217,8 +1244,11 @@ async function alterarInline(id, campo, valor) {
   } else if (campo === 'emitido') {
     c.emitido = valor;
   }
-  if (campo === 'status') renderListas(); // o cartão pode sair desta tela (ex.: concluída vai para Certificados Emitidos)
-  await salvarCliente(c);
+  const destino = destinoDe(c);
+  if (destino !== destinoAntes) renderListas(); // o cartão saiu desta tela (ver destinoDe)
+  else if (campo === 'status') renderListas();  // mostra/esconde o campo de agendamento
+  const ok = await salvarCliente(c);
+  if (ok && destino !== destinoAntes) toast('Movido para ' + DESTINO_ROTULO[destino] + '.');
 }
 
 // Envia o cliente ao SharePoint; se falhar, recarrega a Lista para a tela não mostrar o que não foi salvo
