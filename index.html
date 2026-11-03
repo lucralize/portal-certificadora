@@ -758,7 +758,7 @@ function toast(msg, type='success') {
   t.className = `toast toast-${type}`;
   t.textContent = msg;
   document.getElementById('toast-container').appendChild(t);
-  setTimeout(() => t.remove(), 3500);
+  setTimeout(() => t.remove(), msg.length > 70 ? 9000 : 3500); // mensagens longas ficam mais tempo na tela
 }
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -1887,6 +1887,12 @@ function chipAnexo(nome) {
     : `<button class="anx-chip" style="border:0;cursor:pointer;" title="Abrir biblioteca no SharePoint" onclick="abrirBibliotecaCertificados()">${ic('clip')}<span>${esc(nome)}</span></button>`;
 }
 
+// Diz onde um cliente já cadastrado aparece (usado quando o documento está duplicado)
+function ondeEstaCliente(c) {
+  if (c.excluido) return 'está excluído (abra o Histórico de Exclusões e use Restaurar)';
+  return `${DIVISOES[divisaoDe(c)]}, em ${DESTINO_ROTULO[destinoDe(c)]}`;
+}
+
 // Monta o cartão de um cliente. Todo texto vindo dos dados passa por esc() antes de entrar no HTML.
 function cardRow(c) {
   const id = idSeguro(c.id);
@@ -2101,7 +2107,7 @@ async function salvarForm() {
   if (!nome || !docTexto) { toast('Preencha o nome e o documento.', 'error'); return; }
   const doc = soDigitos(docTexto);
   const outro = getCerts().find(x => x.id !== _editandoId && docDoCliente(x) === doc);
-  if (outro) { toast('Já existe um cliente com este documento.', 'error'); return; }
+  if (outro) { toast(`Este documento já está no portal: "${outro.razaoSocial}" — ${ondeEstaCliente(outro)}.`, 'error'); return; }
 
   const base = _editandoId ? getCerts().find(x => x.id === _editandoId) : null;
   const status = valor('f-status');
@@ -2217,8 +2223,24 @@ function buildLog() {
         <div class="log-meta">${esc(DIVISOES[divisaoDe(c)])} · ${esc(c.cnpj || c.cpf)} · Indicado em ${fmtDate(c.dataIndicacao)}</div>
         <div class="log-meta">Excluído em ${c.excluidoEm ? esc(new Date(c.excluidoEm).toLocaleString('pt-BR')) : '—'}</div>
         <div class="log-just">Justificativa: ${esc(c.justificativaExclusao)}</div>
+        ${ehCertificadora() ? '' : `<div style="margin-top:8px;"><button class="btn btn-outline btn-sm" onclick="restaurarIndicacao('${idSeguro(c.id)}')">Restaurar indicação</button></div>`}
       </div>`).join('')}
   </div>`;
+}
+
+// Tira uma indicação do Histórico de Exclusões e a devolve à lista (volta com o status que tinha)
+async function restaurarIndicacao(id) {
+  if (ehCertificadora() || _gravacoes > 0) return;
+  const base = getCerts().find(x => x.id === id);
+  if (!base || !base.excluido) return;
+  const c = { ...base, excluido: false, justificativaExclusao: '', excluidoEm: null };
+  const ok = await gravando(() => spUpdate(c));
+  if (!ok) return;
+  _excluidosSessao.delete(docDoCliente(c));
+  setCerts(getCerts().map(x => x.id === c.id ? c : x));
+  lgRegistrar('ALTEROU', `Indicação restaurada do histórico: "${c.razaoSocial}" (${DIVISOES[divisaoDe(c)]})`);
+  render();
+  toast(`Indicação restaurada em ${DIVISOES[divisaoDe(c)]}, ${DESTINO_ROTULO[destinoDe(c)]}.`);
 }
 
 // ==================== EXPORTAR PLANILHA ====================
